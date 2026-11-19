@@ -123,8 +123,13 @@ function finalize(g,doubleWin){
  const round=[0,0];
  if(doubleWin){round[first%2]+=200;}
  else{
+  // Give the last player's captured tricks to the first finisher and their
+  // remaining hand cards to an opponent before counting card points.
+  if(last!==undefined){
+   g.captured[first].push(...g.captured[last]);g.captured[last]=[];
+   g.captured[(last+1)%4].push(...g.hands[last]);g.hands[last]=[];
+  }
   for(let p=0;p<4;p++)round[p%2]+=g.captured[p].reduce((sum,c)=>sum+scoreCard(c),0);
-  if(last!==undefined){const opposite=(last+1)%4;round[opposite%2]+=g.hands[last].reduce((sum,c)=>sum+scoreCard(c),0);}
  }
  for(let p=0;p<4;p++){const announced=g.announcements[p];if(announced){const val=announced==='grand'?200:100;round[p%2]+=(p===first?val:-val);}}
  g.scores[0]+=round[0];g.scores[1]+=round[1];
