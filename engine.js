@@ -105,7 +105,9 @@ function options(g,p){return variantsForHand(g.hands[p],g.trick?.combo||null,g.w
 function endTrick(g){
  if(!g.trick)return;
  const owner=g.trick.player;
- g.captured[owner].push(...g.pot);
+ // A Dragon-winning trick is awarded to an opponent (never the winning team).
+ const recipient=g.pot.some(c=>c.key==='G')?(owner+1)%4:owner;
+ g.captured[recipient].push(...g.pot);
  g.pot=[];g.trick=null;g.passes=0;
  g.turn=g.hands[owner].length?owner:pickNext(owner,g.hands);
 }
@@ -114,7 +116,8 @@ function finalize(g,doubleWin){
  if(g.pot.length){
   const p=g.trick?.player??g.finished[0]??0;
   const owner=g.hands[p]?.length?p:g.finished[0]??p;
-  g.captured[owner].push(...g.pot);g.pot=[];g.trick=null;
+  const recipient=g.pot.some(c=>c.key==='G')?(owner+1)%4:owner;
+  g.captured[recipient].push(...g.pot);g.pot=[];g.trick=null;
  }
  const first=g.finished[0],last=[0,1,2,3].find(p=>!g.finished.includes(p));
  const round=[0,0];
