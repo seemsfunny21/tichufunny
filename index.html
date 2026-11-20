@@ -508,6 +508,26 @@
  .table#cardTable > .hand{height:76px;padding:9px 5px 3px}
 }
 
+
+/* Fill the unused bottom strip under "Επόμενος γύρος" in the
+   portrait-phone landscape emulation, rather than reserving blank space. */
+@media (orientation:portrait) and (max-width:650px){
+ .app{padding-bottom:2px}
+ .panel{
+  flex:1 0 auto;
+  padding-bottom:3px;
+ }
+ .table#cardTable{
+  flex:1 0 auto;
+  height:auto;
+  min-height:232px;
+ }
+ #controls{margin-bottom:0}
+}
+@media (orientation:portrait) and (max-width:360px){
+ .table#cardTable{min-height:210px}
+}
+
 </style></head><body><main class="app">
 <header class="hero">
 <div class="hero-title"><div class="icon" aria-hidden="true">🃏</div><h1>TichuFunny</h1></div>
