@@ -209,10 +209,16 @@
 <header class="hero"><div class="icon">🃏</div><h1>TichuFunny</h1><p class="sub">Εσύ + συμπαίκτης AI εναντίον δύο υπολογιστών</p></header>
 <section class="panel">
 <div class="stats"><div class="metric"><small>Η ομάδα σου</small><strong id="team0">0</strong></div><div class="metric"><small>Οι αντίπαλοι</small><strong id="team1">0</strong></div><div class="metric"><small>Γύρος</small><strong id="round">1</strong></div></div>
-<div class="table">
-<div class="opponents"><div class="seat" id="seat3"><strong>Δεξιά</strong><span>14 φύλλα</span></div><div class="seat partner" id="seat2"><strong>Συμπαίκτης</strong><span>14 φύλλα</span></div><div class="seat" id="seat1"><strong>Αριστερά</strong><span>14 φύλλα</span></div></div>
-<div class="trick-label" id="trickLabel">Νέα παρτίδα</div><div class="pot empty" id="pot">Η μπάζα θα εμφανιστεί εδώ</div>
-<div class="yourseat" id="you">Τα φύλλα σου</div>
+<div class="table" id="cardTable" aria-label="Τραπέζι Tichu με τέσσερις παίκτες">
+<div class="seat partner seat-top" id="seat2"><strong>🤝 Συμπαίκτης</strong><span class="count">14 φύλλα</span><span class="card-backs" aria-hidden="true"><i></i><i></i><i></i></span></div>
+<div class="seat seat-left" id="seat1"><strong>Αριστερά</strong><span class="count">14 φύλλα</span><span class="card-backs" aria-hidden="true"><i></i><i></i></span></div>
+<div class="table-center">
+<div class="trick-label" id="trickLabel">Νέα παρτίδα</div>
+<div id="trickOwner" class="trick-owner hidden" role="status" aria-live="polite"></div>
+<div class="pot empty" id="pot">Η μπάζα θα εμφανιστεί εδώ</div>
+</div>
+<div class="seat seat-right" id="seat3"><strong>Δεξιά</strong><span class="count">14 φύλλα</span><span class="card-backs" aria-hidden="true"><i></i><i></i></span></div>
+<div class="yourseat seat-bottom" id="you">Εσύ · 14 φύλλα</div>
 </div>
 <div id="wish" class="wish hidden"></div><div id="message" class="message" role="status" aria-live="polite"></div>
 <div class="hand" id="hand" aria-label="Τα φύλλα σου"></div>
@@ -227,7 +233,7 @@
 'use strict';
 const E=window.TichuEngine,$=id=>document.getElementById(id),SAVE='tichufunny:v1';
 if(!E){$('message').textContent='Δεν φορτώθηκε η μηχανή κανόνων.';return;}
-let g,selected=new Set(),trades={},active=true,embeddedActive=true,botTimer=null,needAnnouncePrompt=false,lastNotice='';
+let g,selected=new Set(),straightPreview=null,trades={},active=true,embeddedActive=true,botTimer=null,needAnnouncePrompt=false,lastNotice='';
 function save(){try{localStorage.setItem(SAVE,JSON.stringify(g))}catch(_){}}
 function note(s){lastNotice=s;$('message').textContent=s;}
 function cardClass(c){return 'card'+(c.key?' special':'')+(c.key==='P'?' phoenix':'')+(!c.key&&(c.suit===1||c.suit===3)?' red':'');}
@@ -242,20 +248,87 @@ function btn(label,callback,primary=false,disabled=false){
  const el=document.createElement('button');el.type='button';el.className='btn'+(primary?' primary':'');el.textContent=label;el.disabled=disabled;el.addEventListener('click',callback);$('controls').appendChild(el);return el;
 }
 function sortedHand(){return g.hands[0].slice().sort((a,b)=>E.cardRank(a)-E.cardRank(b)||((a.suit??0)-(b.suit??0)));}
+// Straight cards are displayed in ascending rank even when selected/played
+// in a different order. The Phoenix occupies the rank it substitutes.
+function orderedTrickCards(trick){
+ const cards=trick.cards.map(id=>E.deck().find(c=>c.id===id)).filter(Boolean);
+ const type=trick.combo.type;
+ if(!['straight','bombStraight','pairs'].includes(type))return cards;
+ let phoenixRank=0;
+ if(type==='straight'||type==='bombStraight'){
+  const low=trick.combo.value-trick.combo.len+1;
+  const present=new Set(cards.filter(c=>c.key!=='P').map(E.cardRank));
+  for(let r=low;r<=trick.combo.value;r++)if(!present.has(r)){phoenixRank=r;break;}
+ }
+ const order=c=>c.key==='P'?phoenixRank||E.cardRank(c):E.cardRank(c);
+ return cards.sort((a,b)=>order(a)-order(b)||(a.suit??0)-(b.suit??0));
+}
+function rankDisplay(r){return r===14?'A':r===13?'K':r===12?'Q':r===11?'J':String(r);}
+// Search only the engine-approved moves. This respects the opponent's
+// combination length/value, bombs, Mahjong wishes and available cards.
+function findStraightFrom(card){
+ if(g.stage!=='playing'||g.turn!==0||!card||card.key==='P'||card.key==='G'||card.key==='D')return null;
+ const low=E.cardRank(card);
+ const possible=E.options(g,0).moves.filter(m=>
+  (m.combo.type==='straight'||m.combo.type==='bombStraight')&&
+  m.combo.len>=5&&m.combo.value-m.combo.len+1===low&&
+  m.ids.includes(card.id));
+ if(!possible.length)return null;
+ possible.sort((a,b)=>b.combo.len-a.combo.len||a.combo.value-b.combo.value||a.combo.bomb-b.combo.bomb);
+ const best=possible[0];
+ return {startId:card.id,ids:best.ids.slice(),
+  label:rankDisplay(low)+'–'+rankDisplay(best.combo.value),len:best.combo.len};
+}
+function acceptStraight(){
+ if(!straightPreview)return;
+ selected=new Set(straightPreview.ids);
+ const label=straightPreview.label;
+ straightPreview=null;
+ lastNotice='✓ Επιλέχθηκε η κέντα '+label+'. Πάτησε Παίξε.';
+ redraw();
+}
+
 function redraw(){
  $('team0').textContent=String(g.scores[0]);$('team1').textContent=String(g.scores[1]);$('round').textContent=String(g.round);
  $('difficulty').value=g.difficulty;
- for(let p of [1,2,3]){const seat=$('seat'+p);seat.classList.toggle('active',g.stage==='playing'&&g.turn===p);seat.classList.toggle('done',!g.hands[p].length);seat.querySelector('span').textContent=g.hands[p].length+' φύλλα'+(g.announcements[p]?' · '+g.announcements[p].toUpperCase():'');}
- $('you').textContent='Τα φύλλα σου: '+g.hands[0].length+(g.announcements[0]?' · '+g.announcements[0].toUpperCase():'');
+ const leader=g.stage==='playing'?g.trick?.player:null;
+ const teammateLeads=leader===2;
+ const table=$('cardTable');table.classList.toggle('partner-leading',teammateLeads);
+ table.classList.toggle('opponent-leading',leader===1||leader===3);
+ for(const p of [1,2,3]){
+  const seat=$('seat'+p);
+  seat.classList.toggle('active',g.stage==='playing'&&g.turn===p);
+  seat.classList.toggle('done',!g.hands[p].length);
+  seat.classList.toggle('leader',leader===p);
+  seat.querySelector('.count').textContent=g.hands[p].length+' φύλλα'+(g.announcements[p]?' · '+g.announcements[p].toUpperCase():'');
+ }
+ $('you').textContent='Εσύ · '+g.hands[0].length+' φύλλα'+(g.announcements[0]?' · '+g.announcements[0].toUpperCase():'');
  $('you').classList.toggle('active',g.stage==='playing'&&g.turn===0);
+ $('you').classList.toggle('leader',leader===0);
+ const owner=$('trickOwner');owner.classList.toggle('hidden',leader===null||leader===undefined);
+ owner.classList.toggle('ally',leader===0||leader===2);
+ owner.classList.toggle('opponent',leader===1||leader===3);
+ owner.textContent=leader===2?'🛡️ Προηγείται ο συμπαίκτης — πρόσεχε!':
+  leader===0?'✦ Η δική σου μπάζα':
+  leader===1?'⚡ Προηγείται ο αριστερός αντίπαλος':
+  leader===3?'⚡ Προηγείται ο δεξιός αντίπαλος':'';
  $('wish').classList.toggle('hidden',!g.wish);$('wish').textContent=g.wish?'Ευχή Mahjong: '+(g.wish===14?'Άσος':g.wish===13?'Ρήγας':g.wish===12?'Ντάμα':g.wish===11?'Βαλές':g.wish):'';
  const label=$('trickLabel'),pot=$('pot');pot.replaceChildren();pot.classList.toggle('empty',!g.trick);
  if(g.trick){label.textContent=['Εσύ','Αριστερά','Συμπαίκτης','Δεξιά'][g.trick.player]+' · '+({
  single:'Μονό',pair:'Ζευγάρι',triple:'Τριάδα',full:'Φουλ',straight:'Κέντα',pairs:'Συνεχόμενα ζευγάρια',bomb4:'Βόμβα',bombStraight:'Κέντα χρώματος (βόμβα)'
  }[g.trick.combo.type]||g.trick.combo.type);
-  for(const id of g.trick.cards){const c=E.deck().find(x=>x.id===id);if(c)pot.appendChild(makeCard(c,null));}
+  for(const c of orderedTrickCards(g.trick))pot.appendChild(makeCard(c,null));
  }else{label.textContent=g.stage==='grand'?'Grand Tichu · Απόφαση πριν το 9ο φύλλο':g.stage==='trade'?'Ανταλλαγή τριών φύλλων':g.stage==='finished'?'Αποτέλεσμα γύρου':'Νέα μπάζα';pot.textContent=g.stage==='grand'?'Βλέπεις τα πρώτα 8 φύλλα σου.':g.stage==='trade'?'Δώσε από ένα φύλλο στους άλλους τρεις παίκτες.':g.stage==='finished'?'Ο γύρος ολοκληρώθηκε.':'Περιμένουμε την πρώτη κίνηση.';}
- const hand=$('hand');hand.replaceChildren();for(const c of sortedHand())hand.appendChild(makeCard(c,()=>toggle(c.id),selected.has(c.id),Object.values(trades).includes(c.id)));
+ const hand=$('hand');hand.replaceChildren();
+ if(g.stage!=='playing'||g.turn!==0)straightPreview=null;
+ for(const c of sortedHand()){
+  const el=makeCard(c,()=>toggle(c.id),selected.has(c.id),Object.values(trades).includes(c.id));
+  if(straightPreview?.ids.includes(c.id)&&c.id!==straightPreview.startId){
+   el.classList.add('straight-glow');
+   el.setAttribute('aria-label',E.label(c)+' · προτεινόμενη κέντα '+straightPreview.label);
+  }
+  hand.appendChild(el);
+ }
  $('controls').replaceChildren();
  $('new').textContent=g.stage==='finished'?'↻ Επόμενος γύρος':'↻ Νέος γύρος';
  if(g.stage==='grand'){
@@ -270,7 +343,9 @@ function redraw(){
   if(!lastNotice)note('Επίλεξε ένα φύλλο και τον παραλήπτη του.');
  }else if(g.stage==='playing'){
   const myTurn=g.turn===0;
-  btn('▶ Παίξε',humanPlay,true,selected.size===0);
+  if(straightPreview)btn('✨ Κέντα '+straightPreview.label,acceptStraight,true);
+  const playButton=btn(teammateLeads?'⚠ Παίξε (συμπαίκτης)':'▶ Παίξε',humanPlay,true,!myTurn||selected.size===0);
+  if(teammateLeads)playButton.classList.add('partner-caution');
   btn('Πάσο',humanPass,false,!myTurn||!g.trick);
   btn('💡 Υπόδειξη',hint,false,!myTurn);
   if(g.hands[0].length===14&&!g.announcements[0])btn('Tichu +100',announce,false,!myTurn);
@@ -281,7 +356,32 @@ function redraw(){
   note((win?'🏆':'🃏')+' Γύρος: '+(r.round?.[0]||0)+' – '+(r.round?.[1]||0)+' · Σύνολο '+g.scores[0]+' – '+g.scores[1]);
  }
 }
-function toggle(id){if(g.stage==='finished')return;if(Object.values(trades).includes(id)&&g.stage==='trade')for(const k of Object.keys(trades))if(trades[k]===id)delete trades[k];if(selected.has(id))selected.delete(id);else{if(g.stage==='trade')selected.clear();selected.add(id);}redraw();}
+function toggle(id){
+ if(g.stage==='finished')return;
+ if(g.stage==='trade'){
+  if(Object.values(trades).includes(id))for(const k of Object.keys(trades))if(trades[k]===id)delete trades[k];
+  if(selected.has(id))selected.delete(id);else{selected.clear();selected.add(id);}
+  redraw();return;
+ }
+ if(g.stage==='playing'&&g.turn===0){
+  // Tap one glowing card (or the "Κέντα" button) to accept the full run.
+  if(straightPreview&&straightPreview.ids.includes(id)&&id!==straightPreview.startId){
+   acceptStraight();return;
+  }
+  if(!selected.has(id)&&selected.size===0){
+   const card=g.hands[0].find(c=>c.id===id);
+   const preview=findStraightFrom(card);
+   if(preview){
+    straightPreview=preview;selected.add(id);
+    lastNotice='✨ Κέντα '+preview.label+': τα φωτισμένα φύλλα σχηματίζουν νόμιμη κέντα.';
+    redraw();return;
+   }
+  }
+ }
+ straightPreview=null;
+ if(selected.has(id))selected.delete(id);else selected.add(id);
+ redraw();
+}
 function doGrand(yes){if(!E.grand(g,yes))return;selected.clear();lastNotice=yes?'Δήλωσες Grand Tichu! Διάλεξε τρεις κάρτες για ανταλλαγή.':'Διάλεξε από ένα φύλλο για κάθε παίκτη.';redraw();save();}
 function sendTrade(target){if(selected.size!==1)return;const id=[...selected][0];for(const k of Object.keys(trades))if(trades[k]===id)delete trades[k];trades[target]=id;selected.clear();lastNotice='Ετοιμάστηκε η ανταλλαγή: '+Object.keys(trades).length+'/3.';redraw();}
 function completeTrade(){
@@ -301,16 +401,16 @@ function humanPlay(){
  }
  const res=E.play(g,0,ids,wish);
  if(!res.ok){note(res.reason);return;}
- selected.clear();lastNotice=res.dog?'Ο Dog έδωσε τη σειρά στον συμπαίκτη.':'Έπαιξες '+cards.map(E.label).join(', ');redraw();save();scheduleBot();
+ selected.clear();straightPreview=null;lastNotice=res.dog?'Ο Dog έδωσε τη σειρά στον συμπαίκτη.':'Έπαιξες '+cards.map(E.label).join(', ');redraw();save();scheduleBot();
 }
 function humanPass(){
  const r=E.pass(g,0);if(!r.ok){note(r.reason);return;}
- selected.clear();lastNotice=r.closed?'Η μπάζα έκλεισε.':'Πήγες πάσο.';redraw();save();scheduleBot();
+ selected.clear();straightPreview=null;lastNotice=r.closed?'Η μπάζα έκλεισε.':'Πήγες πάσο.';redraw();save();scheduleBot();
 }
 function hint(){
  const opts=E.options(g,0);if(!opts.moves.length){note(g.trick?'💡 Δεν έχεις κίνηση που να κερδίζει.':'Δεν υπάρχουν διαθέσιμες κάρτες.');return;}
  const best=opts.moves.slice().sort((a,b)=>(a.combo.bomb-b.combo.bomb)||(b.cards.length-a.cards.length)||(a.combo.value-b.combo.value))[0];
- selected=new Set(best.ids);lastNotice='💡 Πρόταση: '+best.cards.map(E.label).join(', ');redraw();
+ selected=new Set(best.ids);straightPreview=null;lastNotice='💡 Πρόταση: '+best.cards.map(E.label).join(', ');redraw();
 }
 function announce(){
  if(E.claimTichu(g,0)){lastNotice='Δήλωσες Tichu. Πρέπει να βγεις πρώτος!';redraw();save();}else note('Το Tichu δηλώνεται πριν παίξεις το πρώτο σου φύλλο.');
@@ -328,7 +428,7 @@ function runBot(){
  redraw();save();scheduleBot();
 }
 function scheduleBot(){if(botTimer)clearTimeout(botTimer);botTimer=null;if(active&&g.stage==='playing'&&g.turn!==0)botTimer=setTimeout(runBot,520);}
-function newRound(){if(g&&g.stage!=='finished'&&!confirm('Νέος γύρος; Η τρέχουσα παρτίδα θα χαθεί.'))return;const old=g;g=E.newRound(old);selected.clear();trades={};lastNotice='Δες τα 8 φύλλα σου και αποφάσισε για το Grand Tichu.';redraw();save();}
+function newRound(){if(g&&g.stage!=='finished'&&!confirm('Νέος γύρος; Η τρέχουσα παρτίδα θα χαθεί.'))return;const old=g;g=E.newRound(old);selected.clear();straightPreview=null;trades={};lastNotice='Δες τα 8 φύλλα σου και αποφάσισε για το Grand Tichu.';redraw();save();}
 $('new').addEventListener('click',newRound);
 $('difficulty').addEventListener('change',e=>{g.difficulty=e.target.value;save();note('Αποθηκεύτηκε η δυσκολία.');});
 function visibility(){active=document.visibilityState==='visible'&&embeddedActive;if(!active){if(botTimer)clearTimeout(botTimer);botTimer=null;}else scheduleBot();}
