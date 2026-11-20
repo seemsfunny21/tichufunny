@@ -931,15 +931,13 @@ function completeTrade(){
  if(!E.exchange(g,t))return note('Χρειάζεται ένα διαφορετικό φύλλο για κάθε παίκτη.');
  trades={};selected.clear();lastNotice='Η ανταλλαγή ολοκληρώθηκε. Ξεκινά ο παίκτης με το Mahjong.';redraw();save();scheduleBot();
 }
-function humanPlay(){
+async function humanPlay(){
  if(g.stage!=='playing'||!selected.size)return;
  const ids=[...selected],cards=g.hands[0].filter(c=>selected.has(c.id));
  let wish=null;
  if(cards.some(c=>c.key==='M')){
-  const answer=prompt('Ευχή Mahjong: γράψε αριθμό 2–14 (11=J, 12=Q, 13=K, 14=A):','9');
-  if(answer===null)return;
-  wish=Number(answer);
-  if(!Number.isInteger(wish)||wish<2||wish>14){note('Η ευχή πρέπει να είναι αριθμός από 2 έως 14.');return;}
+  wish=await GameDialog.wish();
+  if(wish===null)return;
  }
  const res=E.play(g,0,ids,wish);
  if(!res.ok){note(res.reason);return;}
@@ -970,7 +968,7 @@ function runBot(){
  redraw();save();scheduleBot();
 }
 function scheduleBot(){if(botTimer)clearTimeout(botTimer);botTimer=null;if(active&&g.stage==='playing'&&g.turn!==0)botTimer=setTimeout(runBot,520);}
-function newRound(){if(g&&g.stage!=='finished'&&!confirm('Νέος γύρος; Η τρέχουσα παρτίδα θα χαθεί.'))return;const old=g;g=E.newRound(old);selected.clear();straightPreview=null;trades={};lastNotice='';redraw();save();}
+async function newRound(){if(g&&g.stage!=='finished'&&!await GameDialog.confirm('Νέος γύρος; Η τρέχουσα παρτίδα θα χαθεί.'))return;const old=g;g=E.newRound(old);selected.clear();straightPreview=null;trades={};lastNotice='';redraw();save();}
 function toggleSettings(open){
  const panel=$('settingsPanel');
  panel.hidden=!open;
@@ -982,8 +980,8 @@ document.addEventListener('click',e=>{
  if(!panel.hidden&&!e.target.closest('.hero'))toggleSettings(false);
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleSettings(false);});
-function newMatch(){
- if(g.stage!=='finished'&&!confirm('Νέα παρτίδα; Θα χαθεί ο τρέχων γύρος και θα μηδενιστούν τα συνολικά σκορ.'))return;
+async function newMatch(){
+ if(g.stage!=='finished'&&!await GameDialog.confirm('Νέα παρτίδα; Θα χαθεί ο τρέχων γύρος και θα μηδενιστούν τα συνολικά σκορ.'))return;
  const difficulty=g.difficulty;
  g=E.newRound({scores:[0,0],round:0,difficulty});
  selected.clear();straightPreview=null;trades={};
