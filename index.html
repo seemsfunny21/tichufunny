@@ -380,8 +380,149 @@
  .hand .card.straight-glow{animation:none}
 }
 
+
+/* Table-centric layout: all your cards are at the bottom of the felt,
+   directly above the "Εσύ" seat. The old outside control row is gone. */
+.hero{
+ position:relative;z-index:20;isolation:isolate;
+ display:grid;grid-template-columns:32px minmax(0,1fr) 32px;
+ align-items:center;gap:5px;
+}
+.hero::before{content:"";width:32px;height:1px}
+.hero-title{
+ min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;
+}
+.hero-title .icon{font-size:22px;line-height:1}
+.hero-title h1{
+ margin:0;font-size:clamp(18px,4.4vw,26px);line-height:1.1;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.settings-toggle{
+ display:grid;place-items:center;justify-self:end;
+ width:32px;height:32px;padding:0;
+ border:1px solid #6daacb9d;border-radius:10px;
+ background:linear-gradient(145deg,#1b587e,#102f4f);
+ color:#e6f8ff;font-size:22px;line-height:1;cursor:pointer;
+ box-shadow:inset 0 1px #ffffff31,0 2px 8px #0004;
+}
+.settings-toggle[aria-expanded="true"]{
+ border-color:#91e4ff;background:#235b82;
+ box-shadow:0 0 12px #54b9ff86;
+}
+.settings-toggle:focus-visible{
+ outline:2px solid #b9f1ff;outline-offset:2px;
+}
+.settings-panel{
+ position:absolute;top:calc(100% + 5px);right:0;z-index:50;
+ width:min(245px,calc(100vw - 16px));
+ display:flex;flex-direction:column;gap:7px;padding:12px;
+ background:linear-gradient(150deg,#154163,#082b44);
+ border:1px solid #70b5dc;border-radius:13px;
+ box-shadow:0 14px 30px #000b,0 0 14px #2b8ec753;
+ text-align:left;
+}
+.settings-panel[hidden]{display:none!important}
+.settings-panel strong{font-size:14px;color:#e7f8ff;text-align:center}
+.settings-panel label{font-size:12px;color:#c1e5f4}
+.settings-panel select,.settings-panel .btn{
+ width:100%;min-height:40px;font-size:13px;
+}
+.settings-panel .btn{margin-top:3px}
+.panel{position:relative;z-index:1}
+.table#cardTable{
+ grid-template-areas:". north ." "west center east" "hand hand hand" ". south .";
+ grid-template-rows:38px minmax(92px,1fr) 89px 34px;
+ min-height:300px;
+}
+.table#cardTable > .hand{
+ grid-area:hand;
+ display:flex;align-items:center;justify-content:center;flex-wrap:nowrap;
+ width:100%;min-width:0;max-width:100%;
+ height:86px;min-height:0;margin:0;padding:11px 5px 4px;
+ gap:3px;overflow-x:auto;overflow-y:hidden;
+ -webkit-overflow-scrolling:touch;touch-action:pan-x;
+ scrollbar-width:thin;scrollbar-color:#7cb7cb6e transparent;
+ background:linear-gradient(180deg,#0c3e4a54,#09263888);
+ border:1px solid #84c7be55;border-radius:13px;
+ box-shadow:inset 0 5px 13px #0002,inset 0 -2px 8px #5de4c50b;
+}
+.table#cardTable > .hand .card{flex:0 0 auto}
+.table#cardTable > .hand .card.selected{transform:translateY(-7px)}
+.table#cardTable > .hand .card.straight-glow{transform:translateY(-5px)}
+.table#cardTable > .seat-bottom{z-index:2}
+@media(max-width:600px){
+ .hero{grid-template-columns:30px minmax(0,1fr) 30px;gap:2px}
+ .hero::before{width:30px}
+ .hero-title .icon{font-size:19px}
+ .hero-title h1{font-size:19px}
+ .settings-toggle{width:30px;height:30px;font-size:20px}
+ .table#cardTable{min-height:271px;
+  grid-template-rows:34px minmax(75px,1fr) 78px 30px}
+ .table#cardTable > .hand{height:76px;padding:10px 4px 3px}
+}
+@media(orientation:portrait) and (max-width:650px){
+ .hero{display:grid;grid-template-columns:26px minmax(0,1fr) 26px;
+   min-height:27px;height:27px;padding:2px 5px;gap:2px}
+ .hero::before{width:26px}
+ .hero-title{gap:5px}
+ .hero-title .icon{font-size:16px;line-height:1}
+ .hero-title h1{font-size:16px;line-height:1.05}
+ .settings-toggle{width:25px;height:24px;font-size:18px;border-radius:7px}
+ .settings-panel{width:210px;padding:9px;gap:6px}
+ .settings-panel strong{font-size:12px}
+ .settings-panel label{font-size:11px}
+ .settings-panel select,.settings-panel .btn{min-height:34px;font-size:11px}
+ .table#cardTable{
+  flex:none;height:232px;min-height:232px;
+  grid-template-rows:29px minmax(60px,1fr) 75px 26px;
+  gap:3px;padding:5px 7px;
+ }
+ .table#cardTable > .hand{
+  height:73px;min-height:0;
+  margin:0;padding:8px 5px 3px;gap:2px;
+ }
+ .table#cardTable > .hand .card{height:clamp(49px,8dvh,62px)}
+}
+@media(orientation:portrait) and (max-width:360px){
+ .hero{min-height:24px;height:24px;grid-template-columns:23px minmax(0,1fr) 23px}
+ .hero::before{width:23px}
+ .hero-title h1{font-size:15px}
+ .settings-toggle{width:23px;height:22px;font-size:16px}
+ .table#cardTable{
+  height:210px;min-height:210px;
+  grid-template-rows:24px minmax(50px,1fr) 67px 23px;
+  gap:2px;padding:4px;
+ }
+ .table#cardTable > .hand{height:65px;padding:7px 3px 2px;gap:2px}
+ .table#cardTable > .hand .card{height:53px;width:31px}
+}
+@media(min-width:601px) and (max-height:560px){
+ .hero{display:grid;grid-template-columns:28px minmax(0,1fr) 28px}
+ .hero::before{width:28px}
+ .hero-title h1{font-size:17px}
+ .settings-toggle{height:27px;width:27px;font-size:18px}
+ .table#cardTable{
+  height:230px;min-height:230px;
+  grid-template-rows:28px minmax(59px,1fr) 78px 26px;
+ }
+ .table#cardTable > .hand{height:76px;padding:9px 5px 3px}
+}
+
 </style></head><body><main class="app">
-<header class="hero"><div class="icon">🃏</div><h1>TichuFunny</h1><p class="sub">Εσύ + συμπαίκτης AI εναντίον δύο υπολογιστών</p></header>
+<header class="hero">
+<div class="hero-title"><div class="icon" aria-hidden="true">🃏</div><h1>TichuFunny</h1></div>
+<button class="settings-toggle" id="settingsToggle" type="button" aria-label="Ρυθμίσεις Tichu" aria-expanded="false" aria-controls="settingsPanel" title="Ρυθμίσεις">⚙</button>
+<div class="settings-panel" id="settingsPanel" hidden>
+  <strong>⚙ Ρυθμίσεις</strong>
+  <label for="difficulty">Δυσκολία AI</label>
+  <select id="difficulty">
+    <option value="easy">Εύκολο</option>
+    <option value="normal">Κανονικό</option>
+    <option value="hard">Δύσκολο</option>
+  </select>
+  <button class="btn warn" type="button" id="new">↻ Νέα παρτίδα</button>
+</div>
+</header>
 <section class="panel">
 <div class="stats"><div class="metric"><small>Η ομάδα σου</small><strong id="team0">0</strong></div><div class="metric"><small>Οι αντίπαλοι</small><strong id="team1">0</strong></div><div class="metric"><small>Γύρος</small><strong id="round">1</strong></div></div>
 <div class="table" id="cardTable" aria-label="Τραπέζι Tichu με τέσσερις παίκτες">
@@ -393,12 +534,11 @@
 <div class="pot empty" id="pot">Η μπάζα θα εμφανιστεί εδώ</div>
 </div>
 <div class="seat seat-right" id="seat3"><strong>Δεξιά</strong><span class="count">14 φύλλα</span><span class="card-backs" aria-hidden="true"><i></i><i></i></span></div>
+<div class="hand" id="hand" aria-label="Τα φύλλα σου"></div>
 <div class="yourseat seat-bottom" id="you">Εσύ · 14 φύλλα</div>
 </div>
 <div id="wish" class="wish hidden"></div><div id="message" class="message" role="status" aria-live="polite"></div>
-<div class="hand" id="hand" aria-label="Τα φύλλα σου"></div>
 <div id="controls" class="controls"></div>
-<div class="controls"><label for="difficulty" class="sub">Δυσκολία AI</label><select id="difficulty"><option value="easy">Εύκολο</option><option value="normal">Κανονικό</option><option value="hard">Δύσκολο</option></select><button class="btn" id="new">↻ Νέος γύρος</button></div>
 <div class="hint" id="help">Οι μπλε κάρτες είναι επιλεγμένες. Οι υπολογιστές παίζουν αυτόματα.</div>
 <p class="footer">Συνεργασία 2 εναντίον 2 · Mahjong, Dog, Phoenix, Dragon, βόμβες, δηλώσεις Tichu και Grand Tichu. Η παρτίδα αποθηκεύεται αυτόματα στη συσκευή.</p>
 </section></main>
@@ -505,7 +645,7 @@ function redraw(){
   hand.appendChild(el);
  }
  $('controls').replaceChildren();
- $('new').textContent=g.stage==='finished'?'↻ Επόμενος γύρος':'↻ Νέος γύρος';
+ $('new').textContent='↻ Νέα παρτίδα';
  if(g.stage==='grand'){
   btn('Grand Tichu (+200 / −200)',()=>doGrand(true),false);
   btn('Χωρίς Grand',()=>doGrand(false),true);
@@ -604,7 +744,26 @@ function runBot(){
 }
 function scheduleBot(){if(botTimer)clearTimeout(botTimer);botTimer=null;if(active&&g.stage==='playing'&&g.turn!==0)botTimer=setTimeout(runBot,520);}
 function newRound(){if(g&&g.stage!=='finished'&&!confirm('Νέος γύρος; Η τρέχουσα παρτίδα θα χαθεί.'))return;const old=g;g=E.newRound(old);selected.clear();straightPreview=null;trades={};lastNotice='Δες τα 8 φύλλα σου και αποφάσισε για το Grand Tichu.';redraw();save();}
-$('new').addEventListener('click',newRound);
+function toggleSettings(open){
+ const panel=$('settingsPanel');
+ panel.hidden=!open;
+ $('settingsToggle').setAttribute('aria-expanded',open?'true':'false');
+}
+$('settingsToggle').addEventListener('click',()=>toggleSettings($('settingsPanel').hidden));
+document.addEventListener('click',e=>{
+ const panel=$('settingsPanel');
+ if(!panel.hidden&&!e.target.closest('.hero'))toggleSettings(false);
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleSettings(false);});
+function newMatch(){
+ if(g.stage!=='finished'&&!confirm('Νέα παρτίδα; Θα χαθεί ο τρέχων γύρος και θα μηδενιστούν τα συνολικά σκορ.'))return;
+ const difficulty=g.difficulty;
+ g=E.newRound({scores:[0,0],round:0,difficulty});
+ selected.clear();straightPreview=null;trades={};
+ lastNotice='Νέα παρτίδα — δες τα 8 φύλλα και αποφάσισε για το Grand Tichu.';
+ toggleSettings(false);redraw();save();
+}
+$('new').addEventListener('click',newMatch);
 $('difficulty').addEventListener('change',e=>{g.difficulty=e.target.value;save();note('Αποθηκεύτηκε η δυσκολία.');});
 function visibility(){active=document.visibilityState==='visible'&&embeddedActive;if(!active){if(botTimer)clearTimeout(botTimer);botTimer=null;}else scheduleBot();}
 document.addEventListener('visibilitychange',visibility);
