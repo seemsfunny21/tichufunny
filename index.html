@@ -625,6 +625,25 @@
  .table#cardTable > #controls .btn{min-height:27px;font-size:10px}
 }
 
+/* Collapsible tutorial lives only inside settings and uses no table height. */
+.settings-panel{max-height:min(85dvh,530px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.tutorial-details{border:1px solid #68afc680;border-radius:10px;overflow:hidden;background:#0d3450;color:#e5f7fd}
+.tutorial-details summary{display:flex;align-items:center;justify-content:center;min-height:33px;padding:8px;cursor:pointer;list-style:none;font-size:12px;font-weight:800}
+.tutorial-details summary::-webkit-details-marker{display:none}
+.tutorial-details summary:focus-visible{outline:2px solid #9df4e9;outline-offset:-2px}
+.tutorial-details[open] summary{border-bottom:1px solid #72bccc6b;background:#1b5674}
+.tutorial-content{padding:8px 9px;max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;font-size:11px;line-height:1.4;text-align:left;color:#d5ebf5;scrollbar-width:thin}
+.tutorial-content p{margin:0 0 8px}
+.tutorial-content p:last-child{margin-bottom:0}
+.tutorial-content strong{color:#a1f5dd}
+@media(orientation:portrait) and (max-width:650px){.settings-panel{max-height:calc(100vw - 48px)}.tutorial-details summary{font-size:11px;padding:6px;min-height:28px}.tutorial-content{max-height:min(39vw,180px);font-size:10px}}
+@media(orientation:portrait) and (max-width:360px){.settings-panel{max-height:calc(100vw - 40px)}.tutorial-content{max-height:120px}}
+
+/* Messages appear briefly above the table, not in a permanent row below. */
+.panel>.message{display:none;position:absolute!important;z-index:15;left:50%;top:31px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 24px);min-height:0!important;max-height:none!important;margin:0;padding:5px 10px!important;white-space:normal;overflow:visible;background:#10374eeF;border:1px solid #80d3dfb5;border-radius:12px;color:#e7faff;font-size:11px;text-align:center;line-height:1.3;box-shadow:0 6px 22px #0008;pointer-events:none}
+.panel>.message.toast-visible{display:block}
+@media(orientation:portrait) and (max-width:650px){.panel>.message{top:28px;font-size:10px}}
+
 </style></head><body><main class="app">
 <header class="hero">
 <div class="hero-title"><div class="icon" aria-hidden="true">🃏</div><h1>TichuFunny</h1></div>
@@ -642,6 +661,19 @@
     <option value="normal">Κανονικό</option>
     <option value="hard">Δύσκολο</option>
   </select>
+  <details class="tutorial-details" id="tichuTutorial">
+<summary>📖 Πώς παίζεται το Tichu</summary>
+<div class="tutorial-content">
+<p><strong>Στόχος:</strong> Παίζετε 2 εναντίον 2, με συμπαίκτη τον απέναντι. Η πρώτη ομάδα που φτάνει τους 1.000 βαθμούς στο τέλος γύρου κερδίζει.</p>
+<p><strong>Μοίρασμα:</strong> Βλέπεις 8 φύλλα, αποφασίζεις για Grand Tichu, παίρνεις άλλα 6 και ανταλλάσσεις από ένα φύλλο με κάθε άλλον παίκτη.</p>
+<p><strong>Συνδυασμοί:</strong> Μονό, ζευγάρι, τριάδα, φουλ (3+2), κέντα τουλάχιστον 5 συνεχόμενων ή συνεχόμενα ζευγάρια. Απαντάς με ισχυρότερο ίδιο συνδυασμό ή πάσο. Βόμβα: 4 ίδια ή κέντα ίδιου χρώματος.</p>
+<p><strong>Mahjong:</strong> Το 1, ξεκινά τον γύρο και σου επιτρέπει να ζητήσεις αριθμό 2–Άσο. Αν κάποιος μπορεί νόμιμα να εκπληρώσει την ευχή, οφείλει να το κάνει.</p>
+<p><strong>Dog 🐕:</strong> Παραχωρεί το ξεκίνημα στον συμπαίκτη. <strong>Phoenix 🔥:</strong> Μπαλαντέρ, −25 βαθμοί. <strong>Dragon 🐉:</strong> Ισχυρότερο μονό, +25 βαθμοί· κερδισμένη μπάζα Dragon δίνεται σε αντίπαλο.</p>
+<p><strong>Tichu:</strong> Δήλωση ότι θα τελειώσεις πρώτος, +100 αν πετύχει ή −100 αν όχι. <strong>Grand Tichu:</strong> Η ίδια πρόβλεψη στα πρώτα 8 φύλλα, ±200.</p>
+<p><strong>Βαθμοί:</strong> 5 = 5, 10 και Ρήγας = 10, Dragon = 25, Phoenix = −25. Αν οι δύο συμπαίκτες βγουν πρώτοι και δεύτεροι, παίρνουν 200 αντί των βαθμών των φύλλων.</p>
+<p><strong>Χειρισμός:</strong> Επίλεξε φύλλα και πάτα «Παίξε». Υπάρχουν «Πάσο», «Υπόδειξη», και glow για νόμιμες κέντες όταν πατάς το μικρότερο φύλλο.</p>
+
+</div></details>
   <button class="btn warn" type="button" id="new">↻ Νέα παρτίδα</button>
 </div>
 </header>
@@ -660,18 +692,26 @@
 <div class="yourseat seat-bottom" id="you">Εσύ · 14 φύλλα</div>
 </div>
 <div id="wish" class="wish hidden"></div><div id="message" class="message" role="status" aria-live="polite"></div>
-<div class="hint" id="help">Οι μπλε κάρτες είναι επιλεγμένες. Οι υπολογιστές παίζουν αυτόματα.</div>
-<p class="footer">Συνεργασία 2 εναντίον 2 · Mahjong, Dog, Phoenix, Dragon, βόμβες, δηλώσεις Tichu και Grand Tichu. Η παρτίδα αποθηκεύεται αυτόματα στη συσκευή.</p>
 </section></main>
 <script src="./engine.js?v=20261120-bomb-rule"></script>
 <script>
 (function(){
 'use strict';
 const E=window.TichuEngine,$=id=>document.getElementById(id),SAVE='tichufunny:v1';
-if(!E){$('message').textContent='Δεν φορτώθηκε η μηχανή κανόνων.';return;}
+if(!E){$('message').textContent='Δεν φορτώθηκε η μηχανή κανόνων.';$('message').classList.add('toast-visible');return;}
 let g,selected=new Set(),straightPreview=null,trades={},active=true,embeddedActive=true,botTimer=null,needAnnouncePrompt=false,lastNotice='';
 function save(){try{localStorage.setItem(SAVE,JSON.stringify(g))}catch(_){}}
-function note(s){lastNotice=s;$('message').textContent=s;}
+let toastTimer=null;
+function note(s){
+ lastNotice=s;
+ const routine=!s||s.startsWith('Δες τα 8 φύλλα')||s.startsWith('Νέα παρτίδα — δες')||
+ s.startsWith('Δήλωσε Grand Tichu τώρα')||s.startsWith('Η σειρά σου:')||
+ s.startsWith('Οι υπολογιστές παίζουν')||s.startsWith('Επίλεξε ένα φύλλο και τον παραλήπτη');
+ const el=$('message');
+ if(toastTimer){clearTimeout(toastTimer);toastTimer=null;}
+ el.textContent=routine?'':s;el.classList.toggle('toast-visible',!routine);
+ if(!routine)toastTimer=setTimeout(()=>el.classList.remove('toast-visible'),3200);
+}
 function cardClass(c){return 'card'+(c.key?' special':'')+(c.key==='P'?' phoenix':'')+(!c.key&&(c.suit===1||c.suit===3)?' red':'');}
 function makeCard(c,fn,selectedState=false,assigned=false){
  const btn=document.createElement('button');btn.type='button';btn.className=cardClass(c)+(selectedState?' selected':'')+(assigned?' assigned':'');
@@ -864,7 +904,7 @@ function runBot(){
  redraw();save();scheduleBot();
 }
 function scheduleBot(){if(botTimer)clearTimeout(botTimer);botTimer=null;if(active&&g.stage==='playing'&&g.turn!==0)botTimer=setTimeout(runBot,520);}
-function newRound(){if(g&&g.stage!=='finished'&&!confirm('Νέος γύρος; Η τρέχουσα παρτίδα θα χαθεί.'))return;const old=g;g=E.newRound(old);selected.clear();straightPreview=null;trades={};lastNotice='Δες τα 8 φύλλα σου και αποφάσισε για το Grand Tichu.';redraw();save();}
+function newRound(){if(g&&g.stage!=='finished'&&!confirm('Νέος γύρος; Η τρέχουσα παρτίδα θα χαθεί.'))return;const old=g;g=E.newRound(old);selected.clear();straightPreview=null;trades={};lastNotice='';redraw();save();}
 function toggleSettings(open){
  const panel=$('settingsPanel');
  panel.hidden=!open;
@@ -881,7 +921,7 @@ function newMatch(){
  const difficulty=g.difficulty;
  g=E.newRound({scores:[0,0],round:0,difficulty});
  selected.clear();straightPreview=null;trades={};
- lastNotice='Νέα παρτίδα — δες τα 8 φύλλα και αποφάσισε για το Grand Tichu.';
+ lastNotice='';
  toggleSettings(false);redraw();save();
 }
 $('new').addEventListener('click',newMatch);
